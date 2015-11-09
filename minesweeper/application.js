@@ -7,23 +7,68 @@
 
   var Game = React.createClass({
     getInitialState: function () {
-      var board = new Minesweeper.Board(10, 5);
+      var board = new Minesweeper.Board(10, 10);
       return ({ board: board, isWon: false, isOver: false});
     },
 
-    updateGame: function () {
+    updateGame: function (tile, flagging) {
+      if (flagging) {
+        tile.toggleFlag();
+      } else {
+        tile.explore();
+      }
 
+      if (this.state.board.won()) {
+        this.setState({ board: this.state.board, isWon: true, isOver: true});
+      } else if (this.state.board.lost()) {
+        this.setState({ board: this.state.board, isWon: false, isOver: true});
+      } else {
+        this.setState({ board: this.state.board });
+      }
+    },
+
+    restartGame: function () {
+      var board = new Minesweeper.Board(10, 5);
+      this.setState({ board: board, isWon: false, isOver: false});
     },
 
     render: function () {
+      var modal = function () {
+        if (this.state.isOver) {
+          var text;
+          if (this.state.isWon) {
+            text = "You Won!!";
+          } else {
+            text = "You Lost :(";
+          }
+          return (
+            <section id="modal" className="modal is-active">
+              <div className="modal-content">
+                <h1>{text}</h1>
+                <button onClick={this.restartGame}>Restart Game</button>
+              </div>
+              <div className="modal-screen"></div>
+            </section>
+          );
+        } else {
+          return "";
+        }
+      }.bind(this);
+
       return (
-        <Board board={this.state.board} updater={this.updateGame}/>
+        <div>
+          {modal()}
+          <Board board={this.state.board} updater={this.updateGame}/>
+        </div>
       );
     }
   });
 
   var Tile = React.createClass({
-
+    handleClick: function (e) {
+      e.preventDefault();
+      this.props.updater(this.props.tile, e.altKey);
+    },
 
     render: function () {
       var text,
@@ -35,6 +80,7 @@
           className += " bombed revealed";
         } else {
           text = this.props.tile.adjacentBombCount();
+          text = (text === 0 ? "" : text);
           className += " revealed";
         }
       } else if (this.props.tile.flagged) {
@@ -42,14 +88,21 @@
         className += " flagged";
       }
 
-      return (<div className={className}>{text}</div>);
+      return (<div onClick={this.handleClick} className={className}>{text}</div>);
     }
   });
 
   var Board = React.createClass({
     render: function () {
+      var className = "";
 
-      return (<div className="board group">
+      if (this.props.board.won()) {
+        className += "won ";
+      } else if (this.props.board.lost()) {
+        className += "lost ";
+      }
+
+      return (<div className={className + "board group"}>
           {
             this.props.board.grid.map(function (row, i) {
               var tiles = row.map(function(tile, j) {
