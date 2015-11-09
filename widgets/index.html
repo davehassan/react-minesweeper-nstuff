@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://fb.me/react-0.13.3.js" charset="utf-8"></script>
+    <script src="https://fb.me/JSXTransformer-0.13.3.js" charset="utf-8"></script>
+    <style>
+      .selected {
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="content"></div>
+    <div id="weather"></div>
+    <dif id="tabs"></div>
+    <script type="text/jsx">
+
+      var AutoComplete = React.createClass({
+        getInitialState: function () {
+          return { str: "" }
+        },
+
+        matchName: function (str, name) {
+          var reg = new RegExp("^" + str);
+          return name.match(reg);
+        },
+
+        nameMatcher: function(){
+          var names = this.props.names.split(", ")
+          var results = [];
+          for (var i = 0; i < names.length; i++) {
+            if (this.matchName(this.state.str, names[i])) {
+              results.push(<li key={i} onClick={this.completeName}>{names[i]}</li>);
+            }
+          }
+          return results
+        },
+
+        addToString: function (e) {
+          this.setState({ str: e.target.value });
+        },
+
+        completeName: function (e) {
+          this.setState({ str: e.target.textContent });
+        },
+
+        render: function(){
+          return (<figure>
+            <input id="textbox" type="text" onChange={this.addToString} value={this.state.str} />
+            <ul>
+              {this.nameMatcher()}
+            </ul>
+          </figure>
+          );
+        }
+      });
+
+      React.render(
+        <AutoComplete names="tommy, carl, dave, william"/>,
+        document.getElementById('content')
+      );
+    </script>
+
+    <script type="text/jsx">
+      var Clock = React.createClass ({
+        getInitialState: function () {
+          return { time: new Date() };
+        },
+
+        update: function () {
+          this.setState({ time: new Date(this.state.time.getTime() + 1000)})
+        },
+
+        componentDidMount: function () {
+          this.intervalID = setInterval(this.update, 1000);
+        },
+
+        render: function () {
+          return (<div>{this.state.time.toString()}</div>);
+        }
+      });
+
+      var Weather = React.createClass({
+        getInitialState: function () {
+          return {};
+        },
+        componentDidMount: function (){
+          navigator.geolocation.getCurrentPosition(function (pos) {
+            var lat = pos.coords.latitude;
+            var lon = pos.coords.longitude;
+            var apiKey = "278331bf8e8b420e0598efb613847b42";
+            var url = "http://api.openweathermap.org/data/2.5/weather?lat=" + lat + "&lon=" + lon + "&APPID=" + apiKey;
+            // var url = "http://api.openweathermap.org/data/2.5/weather?zip=10011,us&
+
+            var request = new XMLHttpRequest();
+            request.open('GET', url, true);
+
+            request.onload = function () {
+              var response = JSON.parse(request.responseText);
+              var description = response.weather[0].description;
+              var temp = 9 / 5 * ( response.main.temp - 273) + 32;
+              this.setState({temp: temp, description: description});
+            }.bind(this);
+            request.send();
+          }.bind(this));
+        },
+
+        render: function() {
+          return(
+            <div>
+              <p>The temperature is: {this.state.temp} degrees F.</p>
+              <p>The weather is: {this.state.description}</p>
+            </div>
+          );
+        }
+      });
+
+      var Wrapper = React.createClass({
+        render: function () {
+          return (
+            <div>
+              <Clock />
+              <Weather />
+            </div>
+          );
+        }
+      });
+
+      React.render(
+        <Wrapper/>,
+        document.getElementById('weather')
+      )
+    </script>
+
+    <script type="text/jsx">
+      var Tabs = React.createClass({
+        getInitialState: function () {
+          return {selectedIdx: 0};
+        },
+
+        handleClick: function (e) {
+          e.preventDefault();
+          var title = e.target.textContent;
+
+          for (var i = 0; i < this.props.articles.length; i++) {
+            var article = this.props.articles[i];
+            if (title === article.title) {
+              var index = i;
+            }
+          }
+
+          this.setState({selectedIdx: index})
+        },
+
+        render: function () {
+          return (
+              <div>
+                <ul>
+                  {
+                    this.props.articles.map(function (el, i) {
+                      var className = (i === this.state.selectedIdx ? "selected" : "");
+                      return (<li key={i} className={className} onClick={this.handleClick}>{el.title}</li>);
+                    }.bind(this))
+                  }
+                </ul>
+                <article>{this.props.articles[this.state.selectedIdx].content}</article>
+              </div>
+            );
+        }
+      });
+
+      var articles = [{title: "First article", content: "Stuff stuff"}, {title: "Article 2", content: "This is fun"}, {title: "functino", content: "how to debug js"}];
+
+      React.render(
+        <Tabs articles={articles}/>,
+        document.getElementById('tabs')
+      )
+    </script>
+
+  </body>
+</html>
